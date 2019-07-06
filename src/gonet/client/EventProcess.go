@@ -1,23 +1,24 @@
 package main
 
 import (
-	"gonet/actor"
-	"gonet/message"
-	"github.com/golang/protobuf/proto"
 	"fmt"
+	"gonet/actor"
 	"gonet/base"
+	"gonet/message"
 	"gonet/network"
+
+	"github.com/golang/protobuf/proto"
 )
 
 type (
 	EventProcess struct {
 		actor.Actor
 
-		Client *network.ClientSocket
-		AccountId int64
-		PlayerId int64
+		Client      *network.ClientSocket
+		AccountId   int64
+		PlayerId    int64
 		AccountName string
-		SimId int64
+		SimId       int64
 	}
 
 	IEventProcess interface {
@@ -28,13 +29,13 @@ type (
 	}
 )
 
-func SendPacket(packet proto.Message){
+func SendPacket(packet proto.Message) {
 	buff := message.Encode(packet)
 	buff = base.SetTcpEnd(buff)
 	CLIENT.Send(buff)
 }
 
-func (this *EventProcess) SendPacket(packet proto.Message){
+func (this *EventProcess) SendPacket(packet proto.Message) {
 	buff := message.Encode(packet)
 	buff = base.SetTcpEnd(buff)
 	this.Client.Send(buff)
@@ -49,11 +50,11 @@ func (this *EventProcess) PacketFunc(socketid int, buff []byte) bool {
 
 	packetId, data := message.Decode(buff)
 	packet := message.GetPakcet(packetId)
-	if packet == nil{
+	if packet == nil {
 		return true
 	}
 	err := message.UnmarshalText(packet, data)
-	if err == nil{
+	if err == nil {
 		bitstream := base.NewBitStream(make([]byte, 1024), 1024)
 		if !message.GetMessagePacket(packet, bitstream) {
 			return true
@@ -71,15 +72,16 @@ func (this *EventProcess) PacketFunc(socketid int, buff []byte) bool {
 func (this *EventProcess) Init(num int) {
 	this.Actor.Init(num)
 	this.RegisterCall("W_C_SelectPlayerResponse", func(packet *message.W_C_SelectPlayerResponse) {
+		fmt.Println("EventProcess PacketFunc: ", "W_C_SelectPlayerResponse")
 		this.AccountId = packet.GetAccountId()
 		nLen := len(packet.GetPlayerData())
 		//fmt.Println(len(packet.PlayerData), this.AccountId, packet.PlayerData)
-		if nLen == 0{
-			packet1 := &message.C_W_CreatePlayerRequest{PacketHead:message.BuildPacketHead( this.AccountId, int(message.SERVICE_WORLDSERVER)),
-				PlayerName:"我是大坏蛋",
-				Sex:int32(0),}
+		if nLen == 0 {
+			packet1 := &message.C_W_CreatePlayerRequest{PacketHead: message.BuildPacketHead(this.AccountId, int(message.SERVICE_WORLDSERVER)),
+				PlayerName: proto.String("我是大坏蛋"),
+				Sex:        proto.Int32(int32(0))}
 			this.SendPacket(packet1)
-		}else{
+		} else {
 			this.PlayerId = packet.GetPlayerData()[0].GetPlayerID()
 			this.LoginGame()
 		}
@@ -89,15 +91,15 @@ func (this *EventProcess) Init(num int) {
 		if packet.GetError() == 0 {
 			this.PlayerId = packet.GetPlayerId()
 			this.LoginGame()
-		}else{//创建失败
+		} else { //创建失败
 
 		}
 	})
 
 	this.RegisterCall("A_C_LoginRequest", func(packet *message.A_C_LoginRequest) {
 		if packet.GetError() == base.ACCOUNT_NOEXIST {
-			packet1 := &message.C_A_RegisterRequest{PacketHead:message.BuildPacketHead( 0, int(message.SERVICE_ACCOUNTSERVER)),
-				AccountName: packet.AccountName, SocketId: 0}
+			packet1 := &message.C_A_RegisterRequest{PacketHead: message.BuildPacketHead(0, int(message.SERVICE_ACCOUNTSERVER)),
+				AccountName: packet.AccountName, SocketId: proto.Int32(0)}
 			this.SendPacket(packet1)
 		}
 	})
@@ -115,25 +117,25 @@ func (this *EventProcess) Init(num int) {
 	this.Actor.Start()
 }
 
-func (this *EventProcess)  LoginGame(){
-	packet1 := &message.C_W_Game_LoginRequset{PacketHead:message.BuildPacketHead( this.AccountId, int(message.SERVICE_WORLDSERVER)),
-		PlayerId:this.PlayerId,}
+func (this *EventProcess) LoginGame() {
+	packet1 := &message.C_W_Game_LoginRequset{PacketHead: message.BuildPacketHead(this.AccountId, int(message.SERVICE_WORLDSERVER)),
+		PlayerId: proto.Int64(this.PlayerId)}
 	this.SendPacket(packet1)
 }
 
-var(
+var (
 	id int
 )
 
-func (this *EventProcess)  LoginAccount() {
+func (this *EventProcess) LoginAccount() {
 	id++
 	this.AccountName = fmt.Sprintf("test%d", id)
-	//this.AccountName = fmt.Sprintf("test%d", base.RAND.RandI(0, 7000))
+	//this.AccountName = fmt.Sprintf("test%d", base.RAND().RandI(0, 7000))
 	packet1 := &message.C_A_LoginRequest{PacketHead: message.BuildPacketHead(0, int(message.SERVICE_ACCOUNTSERVER)),
-		AccountName: this.AccountName, BuildNo: base.BUILD_NO, SocketId: 0}
+		AccountName: proto.String(this.AccountName), BuildNo: proto.String(base.BUILD_NO), SocketId: proto.Int32(0)}
 	this.SendPacket(packet1)
 }
 
-var(
+var (
 	PACKET *EventProcess
 )

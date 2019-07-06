@@ -10,8 +10,8 @@ import (
 	"golang.org/x/net/context"
 )
 
-const(
-	ETCD_DIR =  "server/"
+const (
+	ETCD_DIR = "server/"
 )
 
 type Service struct {
@@ -19,7 +19,7 @@ type Service struct {
 	m_KeysAPI client.KeysAPI
 }
 
-func (this *Service) Ping(){
+func (this *Service) Ping() {
 	for {
 		key := ETCD_DIR + this.String() + "/" + this.IpString()
 		data, _ := json.Marshal(this.ClusterInfo)
@@ -31,7 +31,7 @@ func (this *Service) Ping(){
 	}
 }
 
-func (this *Service) Init(Type int, IP string, Port int, endpoints []string){
+func (this *Service) Init(Type int, IP string, Port int, endpoints []string) {
 	cfg := client.Config{
 		Endpoints:               endpoints,
 		Transport:               client.DefaultTransport,
@@ -46,12 +46,12 @@ func (this *Service) Init(Type int, IP string, Port int, endpoints []string){
 	this.m_KeysAPI = client.NewKeysAPI(etcdClient)
 }
 
-func (this *Service) Start(){
+func (this *Service) Start() {
 	go this.Ping()
 }
 
 //注册服务器
-func NewService(Type int, IP string, Port int, Endpoints []string) *Service{
+func NewService(Type int, IP string, Port int, Endpoints []string) *Service {
 	service := &Service{}
 	service.Init(Type, IP, Port, Endpoints)
 	service.Start()

@@ -3,6 +3,7 @@ package account
 import (
 	"database/sql"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"gonet/actor"
 	"gonet/base"
 	"gonet/db"
@@ -53,7 +54,7 @@ func (this *EventProcess) Init(num int) {
 		if Error != 0 {
 			SendToClient(this.GetSocketId(), &message.A_C_RegisterResponse{
 				PacketHead: message.BuildPacketHead( accountId, 0),
-				Error:      int32(Error),
+				Error:      proto.Int32(int32(Error)),
 				SocketId:packet.SocketId,
 			})
 		}
@@ -95,7 +96,7 @@ func (this *EventProcess) Init(num int) {
 		if error != base.NONE_ERROR {
 			SendToClient(this.GetSocketId(), &message.A_C_LoginRequest{
 				PacketHead:message.BuildPacketHead( 0, 0 ),
-				Error:int32(error),
+				Error:proto.Int32(int32(error)),
 				SocketId:packet.SocketId,
 				AccountName:packet.AccountName,
 			})

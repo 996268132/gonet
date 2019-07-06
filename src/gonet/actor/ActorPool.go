@@ -26,7 +26,6 @@ type(
 		AddActor(Id int64, pActor IActor)//添加actor
 		DelActor(Id int64)//删除actor
 		SendActor(Id int64, io CallIO, funcName string) bool//发送到actor
-		BoardCastActor(funcName string, params ...interface{})//广播actor
 		GetActorNum() int
 	}
 )
@@ -72,9 +71,9 @@ func (this *ActorPool) DelActor(Id int64){
 
 func (this *ActorPool) GetActorNum() int{
 	nLen := 0
-	this.m_ActorLock.RLock()
+	this.m_ActorLock.Lock()
 	nLen = len(this.m_ActorMap)
-	this.m_ActorLock.RUnlock()
+	this.m_ActorLock.Unlock()
 	return nLen
 }
 
@@ -85,14 +84,6 @@ func (this *ActorPool) SendActor(Id int64, io CallIO, funcName string) bool{
 		return true
 	}
 	return false
-}
-
-func (this *ActorPool) BoardCastActor(funcName string, params ...interface{}){
-	this.m_ActorLock.RLock()
-	for _, v := range this.m_ActorMap{
-		v.SendMsg(funcName, params...)
-	}
-	this.m_ActorLock.RUnlock()
 }
 
 func (this *ActorPool) PacketFunc(id int, buff []byte) bool{
@@ -125,7 +116,7 @@ func (this *ActorPool) PacketFunc(id int, buff []byte) bool{
 			packetBuf := bitstream.ReadBits(nLen << 3)
 			message.UnmarshalText(packet, packetBuf)
 			packetHead := message.GetPakcetHead(packet)
-			nId := packetHead.Id
+			nId := int64(*packetHead.Id)
 			return this.m_Self.(IActorPool).SendActor(nId, io, funcName)
 		}
 	}

@@ -1,8 +1,8 @@
 package network
 
 import (
-	"gonet/base"
 	"fmt"
+	"gonet/base"
 	"log"
 	"net"
 	"sync"
@@ -30,21 +30,21 @@ type ServerSocket struct {
 	m_bCanAccept    bool
 	m_bNagle        bool
 	m_ClientList    map[int]*ServerSocketClient
-	m_ClientLocker	*sync.RWMutex
+	m_ClientLocker  *sync.RWMutex
 	m_Listen        *net.TCPListener
 	m_Pool          sync.Pool
 	m_Lock          sync.Mutex
 }
 
-type ClientChan struct{
+type ClientChan struct {
 	pClient *ServerSocketClient
-	state int
-	id int
+	state   int
+	id      int
 }
 
 type WriteChan struct {
-	buff	[]byte
-	id		int
+	buff []byte
+	id   int
 }
 
 func (this *ServerSocket) Init(ip string, port int) bool {
@@ -79,7 +79,7 @@ func (this *ServerSocket) Start() bool {
 		return false
 	}
 
-	fmt.Printf("启动监听，等待链接！\n")
+	fmt.Printf("启动监听，port: %d,等待链接！\n", this.m_nPort)
 
 	this.m_Listen = ln
 	//延迟，监听关闭
@@ -134,9 +134,9 @@ func (this *ServerSocket) DelClinet(pClient *ServerSocketClient) bool {
 	return true
 }
 
-func (this *ServerSocket) StopClient(id int){
+func (this *ServerSocket) StopClient(id int) {
 	pClinet := this.GetClientById(id)
-	if pClinet != nil{
+	if pClinet != nil {
 		pClinet.Stop()
 	}
 }
@@ -158,17 +158,17 @@ func (this *ServerSocket) Stop() bool {
 	return true
 }
 
-func (this *ServerSocket) SendByID(id int, buff  []byte) int{
+func (this *ServerSocket) SendByID(id int, buff []byte) int {
 	pClient := this.GetClientById(id)
-	if pClient != nil{
+	if pClient != nil {
 		pClient.Send(base.SetTcpEnd(buff))
 	}
-	return  0
+	return 0
 }
 
-func (this *ServerSocket) SendMsgByID(id int, funcName string, params ...interface{}){
+func (this *ServerSocket) SendMsgByID(id int, funcName string, params ...interface{}) {
 	pClient := this.GetClientById(id)
-	if pClient != nil{
+	if pClient != nil {
 		pClient.Send(base.SetTcpEnd(base.GetPacket(funcName, params...)))
 	}
 }
@@ -194,14 +194,14 @@ func (this *ServerSocket) Close() {
 	//this.m_Pool.Put(this)
 }
 
-func SendClient(pClient *ServerSocketClient, buff []byte){
+func SendClient(pClient *ServerSocketClient, buff []byte) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println("SendRpc", err) // 这里的err其实就是panic传入的内容，55
 		}
 	}()
 
-	if pClient != nil{
+	if pClient != nil {
 		pClient.Send(buff)
 	}
 }

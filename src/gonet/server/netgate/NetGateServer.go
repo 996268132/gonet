@@ -1,29 +1,30 @@
- package netgate
+package netgate
 
- import (
-	 "github.com/golang/protobuf/proto"
-	 "gonet/base"
-	 "gonet/message"
-	 "gonet/network"
-	 "gonet/server/common/cluster"
-	 "time"
- )
+import (
+	"gonet/base"
+	"gonet/message"
+	"gonet/network"
+	"gonet/server/common/cluster"
+	"time"
 
-type(
-	ServerMgr struct{
-		m_pService	*network.ServerSocket
+	"github.com/golang/protobuf/proto"
+)
+
+type (
+	ServerMgr struct {
+		m_pService *network.ServerSocket
 		//m_pMonitorClient *common.MonitorClient
-		m_Inited bool
-		m_config base.Config
-		m_Log	base.CLog
+		m_Inited         bool
+		m_config         base.Config
+		m_Log            base.CLog
 		m_TimeTraceTimer *time.Ticker
-		m_PlayerMgr *PlayerManager
-		m_WorldCluster *cluster.Cluster
+		m_PlayerMgr      *PlayerManager
+		m_WorldCluster   *cluster.Cluster
 		m_AccountCluster *cluster.Cluster
-		m_Cluster *cluster.Service
+		m_Cluster        *cluster.Service
 	}
 
-	IServerMgr interface{
+	IServerMgr interface {
 		Init() bool
 		GetLog() *base.CLog
 		GetServer() *network.ServerSocket
@@ -39,38 +40,40 @@ type(
 	BitStream base.BitStream
 )
 
-var(
-	UserNetIP string
-	UserNetPort string
-	AccountServerIp string
+var (
+	GateNetIP         string
+	GateNetPort       string
+	WorldNetIP        string
+	WorldNetPort      string
+	AccountServerIp   string
 	AccountServerPort string
-	EtcdEndpoints []string
+	EtcdEndpoints     []string
 
 	SERVER ServerMgr
 )
 
-func (this *ServerMgr) GetLog() *base.CLog{
- 	return &this.m_Log
+func (this *ServerMgr) GetLog() *base.CLog {
+	return &this.m_Log
 }
 
-func (this *ServerMgr) GetServer() *network.ServerSocket{
- 	return this.m_pService
+func (this *ServerMgr) GetServer() *network.ServerSocket {
+	return this.m_pService
 }
 
-func (this *ServerMgr) GetWorldCluster() *cluster.Cluster{
+func (this *ServerMgr) GetWorldCluster() *cluster.Cluster {
 	return this.m_WorldCluster
 }
 
-func (this *ServerMgr) GetAccountCluster() *cluster.Cluster{
- 	return this.m_AccountCluster
+func (this *ServerMgr) GetAccountCluster() *cluster.Cluster {
+	return this.m_AccountCluster
 }
 
-func (this *ServerMgr) GetPlayerMgr() *PlayerManager{
+func (this *ServerMgr) GetPlayerMgr() *PlayerManager {
 	return this.m_PlayerMgr
 }
 
-func (this *ServerMgr)Init() bool{
-	if(this.m_Inited){
+func (this *ServerMgr) Init() bool {
+	if this.m_Inited {
 		return true
 	}
 
@@ -80,14 +83,16 @@ func (this *ServerMgr)Init() bool{
 	this.m_config.Read("SXZ_SERVER.CFG")
 
 	EtcdEndpoints = this.m_config.Get5("Etcd_Cluster", ",")
-	UserNetIP, UserNetPort 	= this.m_config.Get2("NetGate_WANAddress", ":")
-	AccountServerIp, AccountServerPort 	= this.m_config.Get2("Account_LANAddress", ":")
-	ShowMessage := func(){
+	GateNetIP, GateNetPort = this.m_config.Get2("NetGate_WANAddress", ":")
+	WorldNetIP, WorldNetPort = this.m_config.Get2("World_LANAddress", ":")
+	AccountServerIp, AccountServerPort = this.m_config.Get2("Account_LANAddress", ":")
+	ShowMessage := func() {
 		this.m_Log.Println("**********************************************************")
-		this.m_Log.Printf("\tNetGateServer Version:\t%s",base.BUILD_NO)
-		this.m_Log.Printf("\tNetGateServerIP(LAN):\t%s:%s", UserNetIP, UserNetPort)
+		this.m_Log.Printf("\tNetGateServer Version:\t%s", base.BUILD_NO)
+		this.m_Log.Printf("\tNetGateServerIP(WAN):\t%s:%s", GateNetIP, GateNetPort)
+		this.m_Log.Printf("\tNetGameServerIP(LAN):\t%s:%s", WorldNetIP, WorldNetPort)
 		this.m_Log.Printf("\tAccountServerIP(LAN):\t%s:%s", AccountServerIp, AccountServerPort)
-		this.m_Log.Println("**********************************************************");
+		this.m_Log.Println("**********************************************************")
 	}
 	ShowMessage()
 
@@ -98,8 +103,8 @@ func (this *ServerMgr)Init() bool{
 
 	//初始化socket
 	this.m_pService = new(network.ServerSocket)
-	port := base.Int(UserNetPort)
-	this.m_pService.Init(UserNetIP, port)
+	port := base.Int(GateNetPort)
+	this.m_pService.Init(GateNetIP, port)
 	this.m_pService.SetConnectType(network.CLIENT_CONNECT)
 	//this.m_pService.Start()
 	packet := new(UserPrcoess)
@@ -123,31 +128,32 @@ func (this *ServerMgr)Init() bool{
 	this.m_pService.BindPacketFunc(packet.PacketFunc)
 	this.m_pService.BindPacketFunc(packet1.PacketFunc)
 	this.m_pService.Start()*/
+
 	//注册到集群服务器
-	this.m_Cluster = cluster.NewService(int(message.SERVICE_GATESERVER), UserNetIP, base.Int(UserNetPort), EtcdEndpoints)
+	//this.m_Cluster = cluster.NewService(int(message.SERVICE_GATESERVER), UserNetIP, base.Int(UserNetPort), EtcdEndpoints)
 
 	//世界服务器集群
 	this.m_WorldCluster = new(cluster.Cluster)
-	this.m_WorldCluster.Init(1000, int(message.SERVICE_WORLDSERVER), UserNetIP, base.Int(UserNetPort), EtcdEndpoints)
 	this.m_WorldCluster.BindPacket(&WorldProcess{})
 	this.m_WorldCluster.BindPacketFunc(DispatchPacketToClient)
+	this.m_WorldCluster.Init(1000, int(message.SERVICE_WORLDSERVER), WorldNetIP, base.Int(WorldNetPort), EtcdEndpoints)
 
 	//账号服务器集群
 	this.m_AccountCluster = new(cluster.Cluster)
-	this.m_AccountCluster.Init(1000, int(message.SERVICE_ACCOUNTSERVER), UserNetIP, base.Int(UserNetPort), EtcdEndpoints)
 	this.m_AccountCluster.BindPacket(&AccountProcess{})
+	this.m_AccountCluster.Init(1000, int(message.SERVICE_ACCOUNTSERVER), AccountServerIp, base.Int(AccountServerPort), EtcdEndpoints)
 
 	//初始玩家管理
 	this.m_PlayerMgr = new(PlayerManager)
 	this.m_PlayerMgr.Init(1000)
-	return  false
+	return false
 }
 
-func (this *ServerMgr) OnServerStart(){
+func (this *ServerMgr) OnServerStart() {
 	this.m_pService.Start()
 }
 
-func SendToClient(socketId int, packet proto.Message){
+func SendToClient(socketId int, packet proto.Message) {
 	buff, err := proto.Marshal(packet)
 	if err == nil {
 		SERVER.GetServer().SendByID(socketId, buff)

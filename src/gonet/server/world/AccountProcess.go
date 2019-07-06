@@ -23,21 +23,21 @@ type (
 	}
 )
 
-func (this * AccountProcess) SetSocketId(socketId uint32){
+func (this *AccountProcess) SetSocketId(socketId uint32) {
 	this.m_Id = socketId
 }
 
-func (this * AccountProcess) RegisterServer(ServerType int, Ip string, Port int)  {
-	SERVER.GetAccountCluster().SendMsg(this.m_Id, "COMMON_RegisterRequest",ServerType, Ip, Port)
+func (this *AccountProcess) RegisterServer(ServerType int, Ip string, Port int) {
+	SERVER.GetAccountCluster().SendMsg(this.m_Id, "COMMON_RegisterRequest", ServerType, Ip, Port)
 }
 
 func (this *AccountProcess) Init(num int) {
 	this.Actor.Init(num)
 	this.m_LostTimer = common.NewSimpleTimer(10)
 	this.m_LostTimer.Start()
-	this.RegisterTimer(1 * 1000 * 1000 * 1000, this.Update)
+	this.RegisterTimer(1*1000*1000*1000, this.Update)
 	this.RegisterCall("COMMON_RegisterRequest", func() {
-		this.RegisterServer(int(message.SERVICE_WORLDSERVER), UserNetIP, base.Int(UserNetPort))
+		this.RegisterServer(int(message.SERVICE_WORLDSERVER), WorldNetIP, base.Int(WorldNetPort))
 	})
 
 	this.RegisterCall("COMMON_RegisterResponse", func() {
@@ -63,8 +63,8 @@ func (this *AccountProcess) Init(num int) {
 	this.Actor.Start()
 }
 
-func (this* AccountProcess) Update(){
-	if this.m_LostTimer.CheckTimer(){
+func (this *AccountProcess) Update() {
+	if this.m_LostTimer.CheckTimer() {
 		SERVER.GetAccountCluster().GetCluster(this.m_Id).Start()
 	}
 }

@@ -3,52 +3,45 @@ package db
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	"gonet/base"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/golang/protobuf/proto"
 )
 
-func updatesql(sqlData *SqlData, p *Properties, val string){
-	if p.IsPrimary(){
+func updatesql(sqlData *SqlData, p *Properties, val string) {
+	if p.IsPrimary() {
 		sqlData.SqlName += fmt.Sprintf("`%s`='%s',", p.Name, val)
-	}else{
+	} else {
 		sqlData.SqlValue += fmt.Sprintf("`%s`='%s',", p.Name, val)
 	}
 }
 
-func updatesqlblob(sqlData *SqlData, p *Properties, val []byte){
-	if p.IsPrimary(){
-		sqlData.SqlName += fmt.Sprintf("`%s`='0x%s',", p.Name, val)
-	}else{
-		sqlData.SqlValue += fmt.Sprintf("`%s`='0x%s',", p.Name, val)
-	}
-}
-
-func updatesqlarray(sqlData *SqlData, p *Properties, val string, i int){
+func updatesqlarray(sqlData *SqlData, p *Properties, val string, i int) {
 	if p.IsPrimary() {
 		sqlData.SqlName += fmt.Sprintf("`%s%d`='%s',", p.Name, i, val)
-	}else{
+	} else {
 		sqlData.SqlValue += fmt.Sprintf("`%s%d`='%s',", p.Name, i, val)
 	}
 }
 
-func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlData *SqlData) (bool) {
+func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlData *SqlData) bool {
 	p := getProperties(classField)
 	sType := base.GetTypeStringEx(classField, classVal)
-	if p.IsJson(){
+	if p.IsJson() {
 		data, _ := json.Marshal(classVal.Interface())
 		updatesql(sqlData, p, string(data))
 		return true
-	}else if p.IsBlob(){
+	} else if p.IsBlob() {
 		for classVal.Kind() == reflect.Ptr {
 			classVal = classVal.Elem()
 		}
 		data, _ := proto.Marshal(classVal.Addr().Interface().(proto.Message))
-		updatesqlblob(sqlData, p, data)
+		updatesql(sqlData, p, string(data))
 		return true
-	}else if p.IsIgnore(){
+	} else if p.IsIgnore() {
 		return true
 	}
 
@@ -76,45 +69,45 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = *classVal.Interface().(*int8)
 		}
-		updatesql(sqlData, p, strconv.FormatInt(int64(value),10))
+		updatesql(sqlData, p, strconv.FormatInt(int64(value), 10))
 	case "*uint8":
 		value := uint8(0)
 		if !classVal.IsNil() {
 			value = *classVal.Interface().(*uint8)
 		}
-		updatesql(sqlData, p, strconv.FormatUint(uint64(value),10))
+		updatesql(sqlData, p, strconv.FormatUint(uint64(value), 10))
 	case "*int16":
 		value := int16(0)
 		if !classVal.IsNil() {
 			value = *classVal.Interface().(*int16)
 		}
-		updatesql(sqlData, p, strconv.FormatInt(int64(value),10))
+		updatesql(sqlData, p, strconv.FormatInt(int64(value), 10))
 	case "*uint16":
 		value := uint16(0)
 		if !classVal.IsNil() {
 			value = *classVal.Interface().(*uint16)
 		}
-		updatesql(sqlData, p, strconv.FormatUint(uint64(value),10))
+		updatesql(sqlData, p, strconv.FormatUint(uint64(value), 10))
 	case "*int32":
 		value := int32(0)
 		if !classVal.IsNil() {
 			value = *classVal.Interface().(*int32)
 		}
-		updatesql(sqlData, p, strconv.FormatInt(int64(value),10))
+		updatesql(sqlData, p, strconv.FormatInt(int64(value), 10))
 	case "*uint32":
 		value := uint32(0)
 		if !classVal.IsNil() {
 			value = *classVal.Interface().(*uint32)
 		}
-		updatesql(sqlData, p, strconv.FormatUint(uint64(value),10))
+		updatesql(sqlData, p, strconv.FormatUint(uint64(value), 10))
 	case "*int64":
 		value := int64(0)
 		if !classVal.IsNil() {
 			value = *classVal.Interface().(*int64)
 		}
-		if !p.IsDatetime(){
-			updatesql(sqlData, p, strconv.FormatInt(int64(value),10))
-		}else{
+		if !p.IsDatetime() {
+			updatesql(sqlData, p, strconv.FormatInt(int64(value), 10))
+		} else {
 			updatesql(sqlData, p, GetDBTimeString(int64(value)))
 		}
 	case "*uint64":
@@ -122,7 +115,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = *classVal.Interface().(*uint64)
 		}
-		updatesql(sqlData, p, strconv.FormatUint(uint64(value),10))
+		updatesql(sqlData, p, strconv.FormatUint(uint64(value), 10))
 	case "*string":
 		value := string("")
 		if !classVal.IsNil() {
@@ -134,13 +127,13 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = *classVal.Interface().(*int)
 		}
-		updatesql(sqlData, p, strconv.FormatInt(int64(value),10))
+		updatesql(sqlData, p, strconv.FormatInt(int64(value), 10))
 	case "*uint":
 		value := uint(0)
 		if !classVal.IsNil() {
 			value = *classVal.Interface().(*uint)
 		}
-		updatesql(sqlData, p, strconv.FormatUint(uint64(value),10))
+		updatesql(sqlData, p, strconv.FormatUint(uint64(value), 10))
 	case "*struct":
 		if !classVal.IsNil() {
 			value := classVal.Elem().Interface()
@@ -153,31 +146,31 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 	case "bool":
 		updatesql(sqlData, p, strconv.FormatBool(classVal.Bool()))
 	case "int8":
-		updatesql(sqlData, p, strconv.FormatInt(classVal.Int(),10))
+		updatesql(sqlData, p, strconv.FormatInt(classVal.Int(), 10))
 	case "uint8":
-		updatesql(sqlData, p, strconv.FormatUint(classVal.Uint(),10))
+		updatesql(sqlData, p, strconv.FormatUint(classVal.Uint(), 10))
 	case "int16":
-		updatesql(sqlData, p, strconv.FormatInt(classVal.Int(),10))
+		updatesql(sqlData, p, strconv.FormatInt(classVal.Int(), 10))
 	case "uint16":
-		updatesql(sqlData, p, strconv.FormatUint(classVal.Uint(),10))
+		updatesql(sqlData, p, strconv.FormatUint(classVal.Uint(), 10))
 	case "int32":
-		updatesql(sqlData, p, strconv.FormatInt(classVal.Int(),10))
+		updatesql(sqlData, p, strconv.FormatInt(classVal.Int(), 10))
 	case "uint32":
 		updatesql(sqlData, p, strconv.FormatUint(classVal.Uint(), 10))
 	case "int64":
-		if !p.IsDatetime(){
-			updatesql(sqlData, p, strconv.FormatInt(classVal.Int(),10))
-		}else{
+		if !p.IsDatetime() {
+			updatesql(sqlData, p, strconv.FormatInt(classVal.Int(), 10))
+		} else {
 			updatesql(sqlData, p, GetDBTimeString(classVal.Int()))
 		}
 	case "uint64":
-		updatesql(sqlData, p, strconv.FormatUint(classVal.Uint(),10))
+		updatesql(sqlData, p, strconv.FormatUint(classVal.Uint(), 10))
 	case "string":
 		updatesql(sqlData, p, classVal.String())
 	case "int":
-		updatesql(sqlData, p, strconv.FormatInt(classVal.Int(),10))
+		updatesql(sqlData, p, strconv.FormatInt(classVal.Int(), 10))
 	case "uint":
-		updatesql(sqlData, p, strconv.FormatUint(classVal.Uint(),10))
+		updatesql(sqlData, p, strconv.FormatUint(classVal.Uint(), 10))
 	case "struct":
 		parseUpdateSql(classVal.Interface(), sqlData)
 	case "[]float64":
@@ -185,7 +178,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]float64)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatFloat(v, 'f', -1, 64), i)
 		}
 	case "[]float32":
@@ -193,7 +186,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]float32)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatFloat(float64(v), 'f', -1, 32), i)
 		}
 	case "[]bool":
@@ -201,7 +194,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]bool)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatBool(v), i)
 		}
 	case "[]int8":
@@ -209,7 +202,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]int8)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatInt(int64(v), 10), i)
 		}
 	case "[]uint8":
@@ -217,7 +210,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]uint8)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatUint(uint64(v), 10), i)
 		}
 	case "[]int16":
@@ -225,7 +218,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]int16)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatInt(int64(v), 10), i)
 		}
 	case "[]uint16":
@@ -233,7 +226,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]uint16)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatUint(uint64(v), 10), i)
 		}
 	case "[]int32":
@@ -241,7 +234,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]int32)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatInt(int64(v), 10), i)
 		}
 	case "[]uint32":
@@ -249,7 +242,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]uint32)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatUint(uint64(v), 10), i)
 		}
 	case "[]int64":
@@ -257,10 +250,10 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]int64)
 		}
-		for i,v := range value{
-			if !p.IsDatetime(){
+		for i, v := range value {
+			if !p.IsDatetime() {
 				updatesqlarray(sqlData, p, strconv.FormatInt(int64(v), 10), i)
-			}else{
+			} else {
 				updatesqlarray(sqlData, p, GetDBTimeString(v), i)
 			}
 		}
@@ -269,7 +262,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]uint64)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatUint(uint64(v), 10), i)
 		}
 	case "[]string":
@@ -277,7 +270,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]string)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, v, i)
 		}
 	case "[]int":
@@ -285,7 +278,7 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]int)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatInt(int64(v), 10), i)
 		}
 	case "[]uint":
@@ -293,71 +286,71 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 		if !classVal.IsNil() {
 			value = classVal.Interface().([]uint)
 		}
-		for i,v := range value{
+		for i, v := range value {
 			updatesqlarray(sqlData, p, strconv.FormatUint(uint64(v), 10), i)
 		}
-	case "[]struct"://no support
-		for i := 0;  i < classVal.Len(); i++{
+	case "[]struct": //no support
+		for i := 0; i < classVal.Len(); i++ {
 			parseUpdateSql(classVal.Index(i).Interface(), sqlData)
 		}
 	case "[*]float64":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatFloat(classVal.Index(i).Float(), 'f', -1, 64), i)
 		}
 	case "[*]float32":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatFloat(classVal.Index(i).Float(), 'f', -1, 64), i)
 		}
 	case "[*]bool":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatBool(classVal.Index(i).Bool()), i)
 		}
 	case "[*]int8":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatInt(classVal.Index(i).Int(), 10), i)
 		}
 	case "[*]uint8":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatUint(classVal.Index(i).Uint(), 10), i)
 		}
 	case "[*]int16":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatInt(classVal.Index(i).Int(), 10), i)
 		}
 	case "[*]uint16":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatUint(classVal.Index(i).Uint(), 10), i)
 		}
 	case "[*]int32":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatInt(classVal.Index(i).Int(), 10), i)
 		}
 	case "[*]uint32":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatUint(classVal.Index(i).Uint(), 10), i)
 		}
 	case "[*]int64":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatInt(classVal.Index(i).Int(), 10), i)
 		}
 	case "[*]uint64":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatUint(classVal.Index(i).Uint(), 10), i)
 		}
 	case "[*]string":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, classVal.Index(i).String(), i)
 		}
 	case "[*]int":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatInt(classVal.Index(i).Int(), 10), i)
 		}
 	case "[*]uint":
-		for i := 0;  i < classVal.Len(); i++{
+		for i := 0; i < classVal.Len(); i++ {
 			updatesqlarray(sqlData, p, strconv.FormatUint(classVal.Index(i).Uint(), 10), i)
 		}
-	case "[*]struct"://no support
-		for i := 0;  i < classVal.Len(); i++{
+	case "[*]struct": //no support
+		for i := 0; i < classVal.Len(); i++ {
 			parseUpdateSql(classVal.Index(i).Interface(), sqlData)
 		}
 	default:
@@ -370,54 +363,54 @@ func getUpdateSql(classField reflect.StructField, classVal reflect.Value, sqlDat
 			noramlsql += n
 			primarysql += p
 		} else{*/
-			fmt.Println("getUpdateSql type not supported", sType,  classField.Type)
-			panic("getUpdateSql type not supported")
-			return false
+		fmt.Println("getUpdateSql type not supported", sType, classField.Type)
+		panic("getUpdateSql type not supported")
+		return false
 		//}
 	}
 	return true
 }
 
-func parseUpdateSql(obj interface{}, sqlData *SqlData){
+func parseUpdateSql(obj interface{}, sqlData *SqlData) {
 	classVal := reflect.ValueOf(obj)
 	for classVal.Kind() == reflect.Ptr {
 		classVal = classVal.Elem()
 	}
 	classType := classVal.Type()
 
-	for i := 0; i < classType.NumField(); i++{
-		if !classVal.Field(i).CanInterface(){
+	for i := 0; i < classType.NumField(); i++ {
+		if !classVal.Field(i).CanInterface() {
 			continue
 		}
 
-		bRight:= getUpdateSql(classType.Field(i), classVal.Field(i), sqlData)
-		if !bRight{
+		bRight := getUpdateSql(classType.Field(i), classVal.Field(i), sqlData)
+		if !bRight {
 			errorStr := fmt.Sprintf("parseUpdateSql type not supported %s", classType.Name())
 			panic(errorStr)
-			return//丢弃这个包
+			return //丢弃这个包
 		}
 	}
 	return
 }
 
-func updateSqlStr(sqltable string, sqlData *SqlData) string{
+func updateSqlStr(sqltable string, sqlData *SqlData) string {
 	str := sqlData.SqlValue
 	primary := sqlData.SqlName
 	index := strings.LastIndex(str, ",")
-	if index!= -1{
+	if index != -1 {
 		str = str[:index]
 	}
 
 	index = strings.LastIndex(primary, ",")
-	if index!= -1{
+	if index != -1 {
 		primary = primary[:index]
 	}
 	primary = strings.Replace(primary, ",", " and ", -1)
-	return "update " + sqltable + " set " + str + " where "+ primary
+	return "update " + sqltable + " set " + str + " where " + primary
 }
 
 //--- struct to sql
-func UpdateSql(obj interface{}, sqltable string)string{
+func UpdateSql(obj interface{}, sqltable string) string {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println("UpdateSql", err)
@@ -426,7 +419,7 @@ func UpdateSql(obj interface{}, sqltable string)string{
 
 	sqlData := &SqlData{}
 	parseUpdateSql(obj, sqlData)
-	return  updateSqlStr(sqltable, sqlData)
+	return updateSqlStr(sqltable, sqlData)
 }
 
 func UpdateSqlEx(obj interface{}, sqltable string, params ...string) string {
@@ -443,25 +436,25 @@ func UpdateSqlEx(obj interface{}, sqltable string, params ...string) string {
 	classType := classVal.Type()
 
 	sqlData := &SqlData{}
-	nameMap := make(map[string] string)
-	for _,v := range params{
+	nameMap := make(map[string]string)
+	for _, v := range params {
 		v1 := strings.ToLower(v)
 		nameMap[v1] = v1
 	}
 	for i := 0; i < classType.NumField(); i++ {
-		if !classVal.Field(i).CanInterface() {//private成员不能读取
+		if !classVal.Field(i).CanInterface() { //private成员不能读取
 			continue
 		}
 
 		sf := classType.Field(i)
 		p := getProperties(sf)
 		_, exist := nameMap[p.Name]
-		if exist || p.IsPrimary(){
+		if exist || p.IsPrimary() {
 			bRight := getUpdateSql(sf, classVal.Field(i), sqlData)
-			if !bRight{
+			if !bRight {
 				errorStr := fmt.Sprintf("UpdateSqlEx error %s", reflect.TypeOf(obj).Name())
 				panic(errorStr)
-				return ""//丢弃这个包
+				return "" //丢弃这个包
 			}
 		}
 	}
@@ -491,6 +484,4 @@ type sqltest struct{
 	fmt.Println(db.LoadSqlEx(var1,  "tb_test","where playerid = 111", "I", "J2",))
 	fmt.Println(db.DeleteSql(var1, "tb_test"))
 	fmt.Println(db.DeleteSqlEx(var1,  "tb_test", "I", "J2",))
- */
-
-
+*/

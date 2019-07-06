@@ -3,10 +3,10 @@ package actor
 import (
 	"bytes"
 	"encoding/gob"
-	"gonet/base"
 	"fmt"
-	"log"
+	"gonet/base"
 	"gonet/message"
+	"log"
 	"reflect"
 	"strings"
 	"sync/atomic"
@@ -14,7 +14,7 @@ import (
 	"unsafe"
 )
 
-var(
+var (
 	g_IdSeed int64
 )
 
@@ -23,16 +23,16 @@ var(
 //********************************************************
 type (
 	Actor struct {
-		m_CallChan  chan CallIO//rpc chan
-		m_AcotrChan chan int//use for states
-		m_Id       	 int64
-		m_CallMap	 map[string]interface{}//rpc
+		m_CallChan  chan CallIO //rpc chan
+		m_AcotrChan chan int    //use for states
+		m_Id        int64
+		m_CallMap   map[string]interface{} //rpc
 		//m_pActorMgr  *ActorMgr
-		m_pTimer 	 *time.Ticker//定时器
-		m_TimerCall	func()//定时器触发函数
-		m_bStart	bool
-		m_SocketId	int
-		m_CallId	int64
+		m_pTimer    *time.Ticker //定时器
+		m_TimerCall func()       //定时器触发函数
+		m_bStart    bool
+		m_SocketId  int
+		m_CallId    int64
 	}
 
 	IActor interface {
@@ -40,21 +40,21 @@ type (
 		Stop()
 		Start()
 		FindCall(funcName string) interface{}
-		RegisterCall(funcName string, call interface{})//这里在回调的第一个参数为默认附加参数，为CALLER 信息， 同线程为ACOTRID,remote为SOCKETID
+		RegisterCall(funcName string, call interface{}) //这里在回调的第一个参数为默认附加参数，为CALLER 信息， 同线程为ACOTRID,remote为SOCKETID
 		SendMsg(funcName string, params ...interface{})
 		Send(io CallIO)
-		PacketFunc(id int, buff []byte) bool//回调函数
-		RegisterTimer(duration time.Duration, fun interface{})//注册定时器,时间为纳秒 1000 * 1000 * 1000
+		PacketFunc(id int, buff []byte) bool                   //回调函数
+		RegisterTimer(duration time.Duration, fun interface{}) //注册定时器,时间为纳秒 1000 * 1000 * 1000
 		GetId() int64
 		GetCallId() int64
-		GetSocketId() int//rpc is safe
+		GetSocketId() int //rpc is safe
 		SendNoBlock(io CallIO)
 	}
 
 	CallIO struct {
 		SocketId int
-		ActorId int64
-		Buff []byte
+		ActorId  int64
+		Buff     []byte
 	}
 )
 
@@ -96,11 +96,11 @@ func (this *Actor) Init(chanNum int) {
 	this.m_Id = AssignActorId()
 	this.m_CallMap = make(map[string]interface{})
 	//this.m_pActorMgr = nil
-	this.m_pTimer = time.NewTicker(1<<63-1)//默认没有定时器
+	this.m_pTimer = time.NewTicker(1<<63 - 1) //默认没有定时器
 	this.m_TimerCall = nil
 }
 
-func (this *Actor)  RegisterTimer(duration time.Duration, fun interface{}){
+func (this *Actor) RegisterTimer(duration time.Duration, fun interface{}) {
 	this.m_pTimer.Stop()
 	this.m_pTimer = time.NewTicker(duration)
 	this.m_TimerCall = fun.(func())
@@ -114,11 +114,11 @@ func (this *Actor) clear() {
 	//this.m_pActorMgr = nil
 	close(this.m_AcotrChan)
 	close(this.m_CallChan)
-	if this.m_pTimer != nil{
+	if this.m_pTimer != nil {
 		this.m_pTimer.Stop()
 	}
 
-	for i := range this.m_CallMap{
+	for i := range this.m_CallMap {
 		delete(this.m_CallMap, i)
 	}
 }
@@ -127,8 +127,8 @@ func (this *Actor) Stop() {
 	this.m_AcotrChan <- DESDORY_EVENT
 }
 
-func (this *Actor) Start(){
-	if this.m_bStart == false{
+func (this *Actor) Start() {
+	if this.m_bStart == false {
 		go this.run()
 		this.m_bStart = true
 	}
@@ -144,6 +144,7 @@ func (this *Actor) FindCall(funcName string) interface{} {
 }
 
 func (this *Actor) RegisterCall(funcName string, call interface{}) {
+	fmt.Printf("RegisterCall: %s\n", funcName)
 	switch call.(type) {
 	case func(*IActor, []byte):
 		log.Fatalln("actor error [%s] 消息定义函数不符合", funcName)
@@ -157,13 +158,13 @@ func (this *Actor) RegisterCall(funcName string, call interface{}) {
 }
 
 func (this *Actor) SendMsg(funcName string, params ...interface{}) {
+	fmt.Printf("Actor->SendMsg: %s\n", funcName)
 	var io CallIO
 	io.ActorId = this.m_Id
 	io.SocketId = 0
 	io.Buff = base.GetPacket(funcName, params...)
 	this.Send(io)
 }
-
 
 func (this *Actor) Send(io CallIO) {
 	//go func() {
@@ -192,7 +193,7 @@ func (this *Actor) SendNoBlock(io CallIO) {
 	}
 }
 
-func (this *Actor) PacketFunc(id int, buff []byte) bool{
+func (this *Actor) PacketFunc(id int, buff []byte) bool {
 	var io CallIO
 	io.Buff = buff
 	io.SocketId = id
@@ -201,7 +202,7 @@ func (this *Actor) PacketFunc(id int, buff []byte) bool{
 	funcName := bitstream.ReadString()
 	funcName = strings.ToLower(funcName)
 	pFunc := this.FindCall(funcName)
-	if pFunc != nil{
+	if pFunc != nil {
 		this.Send(io)
 		return true
 	}
@@ -224,7 +225,8 @@ func (this *Actor) call(io CallIO) {
 		params := make([]interface{}, nCurLen)
 		this.m_SocketId = io.SocketId
 		this.m_CallId = io.ActorId
-		for i := 0; i < nCurLen; i++  {
+		fmt.Printf("Actor->Call RegisterFunc: %s,socketId: %d\n", funcName, this.m_SocketId)
+		for i := 0; i < nCurLen; i++ {
 			switch bitstream.ReadInt(8) {
 			case 1:
 				params[i] = bitstream.ReadFlag()
@@ -254,7 +256,6 @@ func (this *Actor) call(io CallIO) {
 				params[i] = bitstream.ReadInt(32)
 			case 14:
 				params[i] = uint(bitstream.ReadInt(32))
-
 
 			case 21:
 				nLen := bitstream.ReadInt(16)
@@ -354,8 +355,6 @@ func (this *Actor) call(io CallIO) {
 					val[i] = uint(bitstream.ReadInt(32))
 				}
 				params[i] = val
-
-
 
 			case 41:
 				nLen := bitstream.ReadInt(16)
@@ -484,8 +483,6 @@ func (this *Actor) call(io CallIO) {
 				}
 				params[i] = val.Interface()
 
-
-
 			case 61:
 				val := new(bool)
 				*val = bitstream.ReadFlag()
@@ -542,8 +539,6 @@ func (this *Actor) call(io CallIO) {
 				val := new(uint)
 				*val = uint(bitstream.ReadInt(32))
 				params[i] = val
-
-
 
 			case 81:
 				nLen := bitstream.ReadInt(16)
@@ -658,8 +653,6 @@ func (this *Actor) call(io CallIO) {
 				}
 				params[i] = val
 
-
-
 			case 101:
 				nLen := bitstream.ReadInt(16)
 				aa := bool(false)
@@ -667,7 +660,7 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**bool)(unsafe.Pointer(arrayPtr))
+					value := (**bool)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_BOOL
 					val1 := bitstream.ReadFlag()
 					*value = &val1
@@ -680,7 +673,7 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**float64)(unsafe.Pointer(arrayPtr))
+					value := (**float64)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_FLOAT64
 					val1 := bitstream.ReadFloat64()
 					*value = &val1
@@ -693,10 +686,10 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**float32)(unsafe.Pointer(arrayPtr))
+					value := (**float32)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_FLOAT32
 					val1 := float32(bitstream.ReadFloat64())
-					*value =  &val1
+					*value = &val1
 				}
 				params[i] = val.Interface()
 			case 104:
@@ -706,10 +699,10 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**int8)(unsafe.Pointer(arrayPtr))
+					value := (**int8)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_INT8
 					val1 := int8(bitstream.ReadInt(8))
-					*value =  &val1
+					*value = &val1
 				}
 				params[i] = val.Interface()
 			case 105:
@@ -719,7 +712,7 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**uint8)(unsafe.Pointer(arrayPtr))
+					value := (**uint8)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_UINT8
 					val1 := uint8(bitstream.ReadInt(8))
 					*value = &val1
@@ -732,10 +725,10 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**int16)(unsafe.Pointer(arrayPtr))
+					value := (**int16)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_INT16
 					val1 := int16(bitstream.ReadInt(16))
-					*value =&val1
+					*value = &val1
 				}
 				params[i] = val.Interface()
 			case 107:
@@ -745,7 +738,7 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**uint16)(unsafe.Pointer(arrayPtr))
+					value := (**uint16)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_UINT16
 					val1 := uint16(bitstream.ReadInt(16))
 					*value = &val1
@@ -758,7 +751,7 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**int32)(unsafe.Pointer(arrayPtr))
+					value := (**int32)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_INT32
 					val1 := int32(bitstream.ReadInt(32))
 					*value = &val1
@@ -771,7 +764,7 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**uint32)(unsafe.Pointer(arrayPtr))
+					value := (**uint32)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_UINT32
 					val1 := uint32(bitstream.ReadInt(32))
 					*value = &val1
@@ -784,10 +777,10 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**int64)(unsafe.Pointer(arrayPtr))
+					value := (**int64)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_INT64
 					val1 := int64(bitstream.ReadInt64(64))
-					*value =  &val1
+					*value = &val1
 				}
 				params[i] = val.Interface()
 			case 111:
@@ -797,7 +790,7 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**uint64)(unsafe.Pointer(arrayPtr))
+					value := (**uint64)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_UINT64
 					val1 := uint64(bitstream.ReadInt64(64))
 					*value = &val1
@@ -810,7 +803,7 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**string)(unsafe.Pointer(arrayPtr))
+					value := (**string)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_STRING
 					val1 := string(bitstream.ReadString())
 					*value = &val1
@@ -823,7 +816,7 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**int)(unsafe.Pointer(arrayPtr))
+					value := (**int)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_INT
 					val1 := bitstream.ReadInt(32)
 					*value = &val1
@@ -836,32 +829,28 @@ func (this *Actor) call(io CallIO) {
 				val := reflect.New(tVal).Elem()
 				arrayPtr := uintptr(unsafe.Pointer(val.Addr().Pointer()))
 				for i := 0; i < nLen; i++ {
-					value :=  (**uint)(unsafe.Pointer(arrayPtr))
+					value := (**uint)(unsafe.Pointer(arrayPtr))
 					arrayPtr = arrayPtr + base.SIZE_UINT
 					val1 := uint(bitstream.ReadInt(32))
 					*value = &val1
 				}
 				params[i] = val.Interface()
 
-
-
-			case base.RPC_MESSAGE://protobuf
+			case base.RPC_MESSAGE: //protobuf
 				packet := message.GetPakcetByName(funcName)
 				nLen := bitstream.ReadInt(base.Bit32)
 				packetBuf := bitstream.ReadBits(nLen << 3)
 				message.UnmarshalText(packet, packetBuf)
 				params[i] = packet
 
-
-
-			case base.RPC_GOB://gob
+			case base.RPC_GOB: //gob
 				nLen := bitstream.ReadInt(base.Bit32)
 				packetBuf := bitstream.ReadBits(nLen << 3)
 				val := reflect.New(k.In(i))
 				buf := bytes.NewBuffer(packetBuf)
 				enc := gob.NewDecoder(buf)
 				err := enc.DecodeValue(val)
-				if err != nil{
+				if err != nil {
 					log.Printf("func [%s] params no fit, func params [%s], params [%v], error[%s]", funcName, strParams, params, err)
 					return
 				}
@@ -872,7 +861,7 @@ func (this *Actor) call(io CallIO) {
 			}
 		}
 
-		if k.NumIn()  != len(params) {
+		if k.NumIn() != len(params) {
 			log.Printf("func [%s] can not call, func params [%s], params [%v]", funcName, strParams, params)
 			return
 		}
@@ -887,31 +876,31 @@ func (this *Actor) call(io CallIO) {
 		}*/
 		//fmt.Printf("func [%s]",funcName)
 
-		if len(params) >= 1{
+		if len(params) >= 1 {
 			bParmasFit := true
 			in := make([]reflect.Value, len(params))
 			for i, param := range params {
 				in[i] = reflect.ValueOf(param)
 				//params no fit
-				if k.In(i).Kind() != in[i].Kind(){
+				if k.In(i).Kind() != in[i].Kind() {
 					bParmasFit = false
 				}
 			}
 
-			if bParmasFit{
+			if bParmasFit {
 				f.Call(in)
-			}else{
+			} else {
 				log.Printf("func [%s] params no fit, func params [%s], params [func(%v)]", funcName, strParams, in)
 			}
-		}else{
+		} else {
 			f.Call(nil)
 		}
 	}
 }
 
-func (this *Actor) loop() bool{
+func (this *Actor) loop() bool {
 	defer func() {
-		if err := recover(); err != nil{
+		if err := recover(); err != nil {
 			base.TraceCode(err)
 		}
 	}()
@@ -919,27 +908,28 @@ func (this *Actor) loop() bool{
 	select {
 	case io := <-this.m_CallChan:
 		this.call(io)
-	case msg := <-this.m_AcotrChan :
-		if msg == DESDORY_EVENT{
+	case msg := <-this.m_AcotrChan:
+		if msg == DESDORY_EVENT {
 			return true
 		}
-	case <- this.m_pTimer.C:
-		if this.m_TimerCall != nil{
+	case <-this.m_pTimer.C:
+		if this.m_TimerCall != nil {
 			this.m_TimerCall()
 		}
 	}
 	return false
 }
 
-func (this *Actor) run(){
+func (this *Actor) run() {
 	for {
-		if this.loop(){
+		if this.loop() {
 			break
 		}
 	}
 
 	this.clear()
 }
+
 /*func ActorRoutine(pActor *Actor) bool {
 	if pActor == nil {
 		return false

@@ -1,21 +1,21 @@
 package network
 
 import (
-	"gonet/base"
 	"bytes"
 	"fmt"
+	"gonet/base"
 	"net"
 )
 
 const (
-	SSF_ACCEPT    		 = iota
-	SSF_CONNECT    	 = iota
-	SSF_SHUT_DOWN      = iota //已经关闭
+	SSF_ACCEPT    = iota
+	SSF_CONNECT   = iota
+	SSF_SHUT_DOWN = iota //已经关闭
 )
 
 const (
-	CLIENT_CONNECT = iota//对外
-	SERVER_CONNECT = iota//对内
+	CLIENT_CONNECT = iota //对外
+	SERVER_CONNECT = iota //对内
 )
 
 const (
@@ -23,15 +23,15 @@ const (
 )
 
 type (
-	HandleFunc func(int,[]byte) bool//回调函数
-	Socket struct {
-		m_Conn                 net.Conn
+	HandleFunc func(int, []byte) bool //回调函数
+	Socket     struct {
+		m_Conn net.Conn
 		//m_Reader				*bufio.Reader
 		//m_Writer				*bufio.Writer
 		m_nPort                int
 		m_sIP                  string
-		m_nState			   int
-		m_nConnectType		   int
+		m_nState               int
+		m_nConnectType         int
 		m_MaxReceiveBufferSize int
 		m_MaxSendBufferSize    int
 
@@ -42,12 +42,12 @@ type (
 		m_AcceptedNum  int
 		m_ConnectedNum int
 
-		m_SendTimes     int
-		m_ReceiveTimes  int
-		m_bShuttingDown bool
-		m_PacketFuncList	*base.Vector//call back
+		m_SendTimes      int
+		m_ReceiveTimes   int
+		m_bShuttingDown  bool
+		m_PacketFuncList *base.Vector //call back
 
-		m_bHalf		bool
+		m_bHalf     bool
 		m_nHalfSize int
 		m_pInBuffer []byte
 	}
@@ -65,19 +65,19 @@ type (
 		Send([]byte) int
 		SendByID(int, []byte) int
 		SendMsg(string, ...interface{})
-		SendMsgByID(int,string, ...interface{})
-		CallMsg(string, ...interface{})//回调消息处理
+		SendMsgByID(int, string, ...interface{})
+		CallMsg(string, ...interface{}) //回调消息处理
 
 		GetState() int
 		SetMaxSendBufferSize(int)
-		GetMaxSendBufferSize()int
+		GetMaxSendBufferSize() int
 		SetMaxReceiveBufferSize(int)
-		GetMaxReceiveBufferSize()int
+		GetMaxReceiveBufferSize() int
 		BindPacketFunc(HandleFunc)
 		SetConnectType(int)
 		SetTcpConn(net.Conn)
-		ReceivePacket(int,	[]byte)
-		HandlePacket(int,	[]byte)
+		ReceivePacket(int, []byte)
+		HandlePacket(int, []byte)
 	}
 )
 
@@ -86,7 +86,7 @@ func (this *Socket) Init(string, int) bool {
 	this.m_PacketFuncList = base.NewVector()
 	this.m_nState = SSF_SHUT_DOWN
 	this.m_MaxReceiveBufferSize = 1024
-	this.m_MaxSendBufferSize =1024
+	this.m_MaxSendBufferSize = 1024
 	this.m_nConnectType = SERVER_CONNECT
 	this.m_bHalf = false
 	this.m_nHalfSize = 0
@@ -113,22 +113,22 @@ func (this *Socket) OnNetFail(int) {
 	this.Stop()
 }
 
-func (this *Socket) GetState() int{
-	return  this.m_nState
+func (this *Socket) GetState() int {
+	return this.m_nState
 }
 
-func (this *Socket) Send([]byte) int{
-	return  0
-}
-
-func (this *Socket) SendByID(int, []byte) int{
+func (this *Socket) Send([]byte) int {
 	return 0
 }
 
-func (this *Socket) SendMsg(funcName string, params  ...interface{}){
+func (this *Socket) SendByID(int, []byte) int {
+	return 0
 }
 
-func (this *Socket) SendMsgByID(int,string, ...interface{}){
+func (this *Socket) SendMsg(funcName string, params ...interface{}) {
+}
+
+func (this *Socket) SendMsgByID(int, string, ...interface{}) {
 }
 
 func (this *Socket) Clear() {
@@ -145,56 +145,58 @@ func (this *Socket) Clear() {
 }
 
 func (this *Socket) Close() {
-	if this.m_Conn != nil{
+	if this.m_Conn != nil {
 		this.m_Conn.Close()
 	}
 	this.Clear()
 }
 
-func (this *Socket) GetMaxReceiveBufferSize() int{
-	return  this.m_MaxReceiveBufferSize
+func (this *Socket) GetMaxReceiveBufferSize() int {
+	return this.m_MaxReceiveBufferSize
 }
 
-func (this *Socket) SetMaxReceiveBufferSize(maxReceiveSize int){
+func (this *Socket) SetMaxReceiveBufferSize(maxReceiveSize int) {
 	this.m_MaxReceiveBufferSize = maxReceiveSize
 }
 
-func (this *Socket) GetMaxSendBufferSize() int{
-	return  this.m_MaxSendBufferSize
+func (this *Socket) GetMaxSendBufferSize() int {
+	return this.m_MaxSendBufferSize
 }
 
-func (this *Socket) SetMaxSendBufferSize(maxSendSize int){
+func (this *Socket) SetMaxSendBufferSize(maxSendSize int) {
 	this.m_MaxSendBufferSize = maxSendSize
 }
 
-func (this *Socket) SetConnectType(nType int){
+func (this *Socket) SetConnectType(nType int) {
 	this.m_nConnectType = nType
 }
 
-func (this *Socket) SetTcpConn(conn net.Conn){
+func (this *Socket) SetTcpConn(conn net.Conn) {
 	this.m_Conn = conn
 	//this.m_Reader = bufio.NewReader(conn)
 	//this.m_Writer = bufio.NewWriter(conn)
 }
 
-func (this *Socket) BindPacketFunc(callfunc HandleFunc){
+func (this *Socket) BindPacketFunc(callfunc HandleFunc) {
 	this.m_PacketFuncList.Push_back(callfunc)
 }
 
-func (this *Socket) CallMsg(funcName string, params ...interface{}){
+func (this *Socket) CallMsg(funcName string, params ...interface{}) {
 	buff := base.GetPacket(funcName, params...)
 	this.HandlePacket(this.m_ClientId, buff)
+	fmt.Printf("CallMsg:%s\n", funcName) // CallMsg
 }
 
-func (this *Socket) HandlePacket(Id int, buff []byte){
-	for _,v := range this.m_PacketFuncList.Array() {
-		if (v.(HandleFunc)(Id, buff)){
+func (this *Socket) HandlePacket(Id int, buff []byte) {
+	for _, v := range this.m_PacketFuncList.Array() {
+		if v.(HandleFunc)(Id, buff) {
 			break
 		}
 	}
 }
 
 func (this *Socket) ReceivePacket(Id int, dat []byte) {
+	fmt.Println("ReceivePacket,ID: ", Id) // 接受包错误
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println("ReceivePacket", err) // 接受包错误
@@ -203,8 +205,8 @@ func (this *Socket) ReceivePacket(Id int, dat []byte) {
 	//找包结束
 	seekToTcpEnd := func(buff []byte) (bool, int) {
 		nLen := bytes.Index(buff, []byte(base.TCP_END))
-		if nLen != -1{
-			return true, nLen+base.TCP_END_LENGTH
+		if nLen != -1 {
+			return true, nLen + base.TCP_END_LENGTH
 		}
 		return false, 0
 	}
@@ -223,7 +225,7 @@ ParsePacekt:
 		if nBufferSize == nPacketSize { //完整包
 			this.HandlePacket(Id, buff[nCurSize:nCurSize+nPacketSize-base.TCP_END_LENGTH])
 			nCurSize += nPacketSize
-		} else if (nBufferSize > nPacketSize) {
+		} else if nBufferSize > nPacketSize {
 			this.HandlePacket(Id, buff[nCurSize:nCurSize+nPacketSize-base.TCP_END_LENGTH])
 			nCurSize += nPacketSize
 			goto ParsePacekt

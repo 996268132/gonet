@@ -2,6 +2,7 @@ package main
 
 import (
 	"gonet/actor"
+	"github.com/golang/protobuf/proto"
 	"gonet/message"
 	"gonet/server/common"
 )
@@ -20,10 +21,10 @@ func (this *CmdProcess) Init(num int) {
 	this.Actor.Init(num)
 	this.RegisterCall("msg", func(args string) {
 		packet1 := &message.C_W_ChatMessage{PacketHead:message.BuildPacketHead( PACKET.AccountId, int(message.SERVICE_WORLDSERVER)),
-			Sender:PACKET.PlayerId,
-			Recver:0,
-			MessageType:int32(message.CHAT_MSG_TYPE_WORLD),
-			Message:(args),
+			Sender:proto.Int64(PACKET.PlayerId),
+			Recver:proto.Int64(0),
+			MessageType:proto.Int32(int32(message.CHAT_MSG_TYPE_WORLD)),
+			Message:proto.String(args),
 		}
 		SendPacket(packet1)
 	})

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/websocket"
-	"gonet/test/cgo"
 	"log"
 	"gonet/message"
 )
@@ -42,8 +41,8 @@ func ExampleDial() {
 }
 
 func main() {
-	a := []byte{1,2,3,4,5,6}
-	fmt.Println(cgo.IndexByte(a, []byte{2,3}))
+	ExampleDial()
+
 	for{
 		ttt := 0
 		ttt++

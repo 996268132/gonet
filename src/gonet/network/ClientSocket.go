@@ -1,8 +1,8 @@
 package network
 
 import (
-	"gonet/base"
 	"fmt"
+	"gonet/base"
 	"io"
 	"log"
 	"net"
@@ -36,7 +36,7 @@ func (this *ClientSocket) Start() bool {
 		this.m_sIP = "127.0.0.1"
 	}
 
-	if this.Connect(){
+	if this.Connect() {
 		this.m_Conn.(*net.TCPConn).SetNoDelay(true)
 		go clientRoutine(this)
 	}
@@ -54,7 +54,7 @@ func (this *ClientSocket) Stop() bool {
 	return true
 }
 
-func (this *ClientSocket) SendMsg(funcName string, params  ...interface{}){
+func (this *ClientSocket) SendMsg(funcName string, params ...interface{}) {
 	buff := base.GetPacket(funcName, params...)
 	buff = base.SetTcpEnd(buff)
 	this.Send(buff)
@@ -62,12 +62,12 @@ func (this *ClientSocket) SendMsg(funcName string, params  ...interface{}){
 
 func (this *ClientSocket) Send(buff []byte) int {
 	defer func() {
-		if err := recover(); err != nil{
+		if err := recover(); err != nil {
 			fmt.Println("ClientSocket Send", err)
 		}
 	}()
 
-	if this.m_Conn == nil{
+	if this.m_Conn == nil {
 		return 0
 	}
 
@@ -85,7 +85,7 @@ func (this *ClientSocket) Restart() bool {
 }
 
 func (this *ClientSocket) Connect() bool {
-	if this.m_nState == SSF_CONNECT{
+	if this.m_nState == SSF_CONNECT {
 		return false
 	}
 
@@ -101,7 +101,7 @@ func (this *ClientSocket) Connect() bool {
 
 	this.m_nState = SSF_CONNECT
 	this.SetTcpConn(ln)
-	fmt.Printf("连接成功，请输入信息！\n")
+	fmt.Printf("连接 %s:%d 成功！发送连接请求: COMMON_RegisterRequest\n", this.m_sIP, this.m_nPort)
 	this.CallMsg("COMMON_RegisterRequest")
 	return true
 }
@@ -110,7 +110,7 @@ func (this *ClientSocket) OnDisconnect() {
 }
 
 func (this *ClientSocket) OnNetFail(int) {
-    this.Stop()
+	this.Stop()
 	this.CallMsg("DISCONNECT", this.m_ClientId)
 }
 
@@ -130,7 +130,7 @@ func clientRoutine(pClient *ClientSocket) bool {
 			break
 		}
 
-		var buff= make([]byte, pClient.m_MaxReceiveBufferSize)
+		var buff = make([]byte, pClient.m_MaxReceiveBufferSize)
 		//n, err := io.ReadFull(pClient.m_Reader, buff)
 		n, err := pClient.m_Conn.Read(buff)
 		if err == io.EOF {
@@ -142,7 +142,7 @@ func clientRoutine(pClient *ClientSocket) bool {
 		if err != nil {
 			handleError(err)
 			pClient.OnNetFail(0)
-			break;
+			break
 		}
 		if n > 0 {
 			pClient.ReceivePacket(pClient.m_ClientId, buff[:n])

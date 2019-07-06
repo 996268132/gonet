@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"encoding/json"
+	"fmt"
 	"gonet/actor"
 	"gonet/server/common"
 	"log"
@@ -14,8 +15,8 @@ import (
 //监控服务器
 type Master struct {
 	m_ServiceMap map[uint32]*common.ClusterInfo
-	m_KeysAPI client.KeysAPI
-	m_Actor actor.IActor
+	m_KeysAPI    client.KeysAPI
+	m_Actor      actor.IActor
 	m_MasterType int
 }
 
@@ -41,7 +42,7 @@ func (this *Master) Init(Endpoints []string, pActor actor.IActor) {
 	}
 
 	this.m_ServiceMap = make(map[uint32]*common.ClusterInfo)
-	this.m_KeysAPI =  client.NewKeysAPI(etcdClient)
+	this.m_KeysAPI = client.NewKeysAPI(etcdClient)
 	this.BindActor(pActor)
 }
 
@@ -55,8 +56,9 @@ func (this *Master) BindActor(pActor actor.IActor) {
 
 func (this *Master) AddService(info *common.ClusterInfo) {
 	_, bEx := this.m_ServiceMap[info.Id()]
-	if !bEx{
+	if !bEx {
 		this.m_Actor.SendMsg("Cluster_Add", info)
+		fmt.Printf("Cluster_Add set type:%d,IP:%s,port:%d\n", info.Type, info.Ip, info.Port) // CallMsg
 	}
 	this.m_ServiceMap[info.Id()] = info
 }
@@ -67,12 +69,12 @@ func (this *Master) DelService(info *common.ClusterInfo) {
 }
 
 func (this *Master) InitService(info *common.ClusterInfo) {
-	res, err :=this.m_KeysAPI.Get(context.Background(), "workers/service/", nil)
-	if err == nil{
+	res, err := this.m_KeysAPI.Get(context.Background(), "workers/service/", nil)
+	if err == nil {
 		log.Println(res.Node.Value)
 		list := []common.ClusterInfo{}
 		json.Unmarshal([]byte(res.Node.Value), list)
-		for _, v := range list{
+		for _, v := range list {
 			this.m_Actor.SendMsg("Cluster_Socket_Add", v)
 		}
 	}
@@ -88,7 +90,7 @@ func NodeToService(node *client.Node) *common.ClusterInfo {
 }
 
 func (this *Master) WatchService() {
-	watcher := this.m_KeysAPI.Watcher(ETCD_DIR + common.ToServiceString(this.m_MasterType), &client.WatcherOptions{
+	watcher := this.m_KeysAPI.Watcher(ETCD_DIR+common.ToServiceString(this.m_MasterType), &client.WatcherOptions{
 		Recursive: true,
 	})
 
@@ -96,7 +98,7 @@ func (this *Master) WatchService() {
 		res, err := watcher.Next(context.Background())
 		if err != nil {
 			log.Println("Error watch service:", err)
-			continue
+			break
 		}
 		if res.Action == "expire" {
 			info := NodeToService(res.PrevNode)

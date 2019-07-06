@@ -3,8 +3,8 @@ package netgate
 import (
 	"gonet/actor"
 	"gonet/message"
-	"strconv"
 	"gonet/server/common"
+	"strconv"
 )
 
 type (
@@ -23,26 +23,27 @@ type (
 	}
 )
 
-func (this * AccountProcess) SetSocketId(socketId uint32){
+func (this *AccountProcess) SetSocketId(socketId uint32) {
 	this.m_Id = socketId
 }
 
-func (this * AccountProcess)RegisterServer(ServerType int, Ip string, Port int)  {
-	SERVER.GetAccountCluster().GetCluster(this.m_Id).SendMsg("COMMON_RegisterRequest",ServerType, Ip, Port)
+func (this *AccountProcess) RegisterServer(ServerType int, Ip string, Port int) {
+	SERVER.GetAccountCluster().GetCluster(this.m_Id).SendMsg("COMMON_RegisterRequest", ServerType, Ip, Port)
 }
 
 func (this *AccountProcess) Init(num int) {
 	this.Actor.Init(num)
-	this.m_LostTimer = common.NewSimpleTimer(3)
+	this.m_LostTimer = common.NewSimpleTimer(10)
 	this.m_LostTimer.Start()
-	this.RegisterTimer(1 * 1000 * 1000 * 1000, this.Update)
+	this.RegisterTimer(1*1000*1000*1000, this.Update)
 	this.RegisterCall("COMMON_RegisterRequest", func() {
-		port,_:=strconv.Atoi(UserNetPort)
-		this.RegisterServer(int(message.SERVICE_GATESERVER), UserNetIP, port)
+		port, _ := strconv.Atoi(GateNetPort)
+		this.RegisterServer(int(message.SERVICE_GATESERVER), GateNetIP, port)
 	})
 
 	this.RegisterCall("COMMON_RegisterResponse", func() {
 		this.m_LostTimer.Stop()
+		SERVER.GetPlayerMgr().SendMsg("Account_Relink")
 	})
 
 	this.RegisterCall("STOP_ACTOR", func() {
@@ -70,8 +71,8 @@ func (this *AccountProcess) Init(num int) {
 	this.Actor.Start()
 }
 
-func (this* AccountProcess) Update(){
-	if this.m_LostTimer.CheckTimer(){
+func (this *AccountProcess) Update() {
+	if this.m_LostTimer.CheckTimer() {
 		SERVER.GetAccountCluster().GetCluster(this.m_Id).Start()
 	}
 }
