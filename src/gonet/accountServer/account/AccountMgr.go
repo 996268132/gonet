@@ -36,36 +36,13 @@ func (this *AccountMgr) Init(num int) {
 	this.m_AccountMap = make(map[int64]*Account)
 	this.m_AccountNameMap = make(map[string]*Account)
 	//this.RegisterTimer(1000 * 1000 * 1000, this.Update)//定时器
-	//账号登录处理
-	this.RegisterCall("Account_Login", func(accountName string, accountId int64, socketId int, id int) {
-		LoginAccount := func(pAccount *Account) {
-			if pAccount != nil {
-				SERVER.GetLog().Printf("帐号[%s]返回登录OK", accountName)
-				SERVER.GetServer().SendMsgByID(id, "A_G_Account_Login", accountId, socketId)
-			}
-		}
-
-		/*pAccount := this.GetAccount(accountId)
-		if pAccount != nil {
-			if pAccount.CheckLoginTime(){
-				return
-			}
-
-			this.RemoveAccount(accountId)
-		}*/
-		//踢出其他账号服务器
-		//this.RemoveAccount(accountId, true)
-		pAccount := this.AddAccount(accountId)
-		LoginAccount(pAccount)
-	})
-
-	//账号断开连接
-	this.RegisterCall("G_ClientLost", func(accountId int64) {
-		SERVER.GetLog().Printf("账号[%d] 断开链接", accountId)
-		this.RemoveAccount(accountId, false)
-	})
-
+	this.InitMessage()
 	this.Actor.Start()
+}
+
+func (this *AccountMgr) InitMessage() {
+	this.RegisterCall("Account_Login", this.HandleAccountLogin)
+	this.RegisterCall("G_ClientLost", this.HandleClientLost)
 }
 
 func (this *AccountMgr) GetAccount(accountId int64) *Account {
@@ -74,6 +51,40 @@ func (this *AccountMgr) GetAccount(accountId int64) *Account {
 		return pAccount
 	}
 	return nil
+}
+
+func (this *AccountMgr) HandleAccountLogin(accountName string, accountId int64, socketId int, id int) {
+	/*
+		LoginAccount := func(pAccount *Account) {
+			if pAccount != nil {
+				SERVER.GetLog().Printf("帐号[%s]返回登录OK", accountName)
+				SERVER.GetServer().SendMsgByID(id, "A_G_Account_Login", accountId, socketId)
+			}
+		}
+
+		pAccount := this.GetAccount(accountId)
+		if pAccount != nil {
+			if pAccount.CheckLoginTime(){
+				return
+			}
+
+			this.RemoveAccount(accountId)
+		}
+	*/
+	//踢出其他账号服务器
+	//this.RemoveAccount(accountId, true)
+	pAccount := this.AddAccount(accountId)
+	//LoginAccount(pAccount)
+	if pAccount != nil {
+		SERVER.GetLog().Printf("帐号[%s]返回登录OK", accountName)
+		SERVER.GetServer().SendMsgByID(id, "A_G_Account_Login", accountId, socketId)
+	}
+}
+
+//账号断开连接
+func (this *AccountMgr) HandleClientLost(accountId int64) {
+	SERVER.GetLog().Printf("账号[%d] 断开链接", accountId)
+	this.RemoveAccount(accountId, false)
 }
 
 func loadAccount(row db.IRow, a *AccountDB) {

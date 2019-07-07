@@ -1,3 +1,3 @@
 
-start "gate" cmd /c gateServer.exe "netgate"
+start "gate" cmd /c gateServer.exe "gate"
 
