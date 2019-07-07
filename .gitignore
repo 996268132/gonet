@@ -83,3 +83,12 @@ bin/data/Npc.dat
 bin/data/Skill.dat
 bin/protoc-gen-go.exe
 bin/protoc.exe
+pkg/windows_amd64/gonet/worldServer/world.a
+pkg/windows_amd64/gonet/rd.a
+pkg/windows_amd64/gonet/network.a
+pkg/windows_amd64/gonet/message.a
+pkg/windows_amd64/gonet/db/mongodb.a
+pkg/windows_amd64/gonet/db.a
+pkg/windows_amd64/gonet/common.a
+pkg/windows_amd64/gonet/base.a
+pkg/windows_amd64/gonet/actor.a

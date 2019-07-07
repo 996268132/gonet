@@ -1,5 +1,5 @@
 
 
-start "account" cmd /c server.exe "account"
+start "account" cmd /c accountServer.exe "account"
 
 

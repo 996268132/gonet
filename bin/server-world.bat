@@ -1,4 +1,4 @@
 
-start "world" cmd /c server.exe "world"
+start "world" cmd /c worldServer.exe "world"
 
 
