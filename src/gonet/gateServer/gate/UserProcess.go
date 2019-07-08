@@ -137,11 +137,17 @@ func (this *UserPrcoess) PacketFunc(socketid int, buff []byte) bool {
 
 func (this *UserPrcoess) Init(num int) {
 	this.Actor.Init(num)
-	this.RegisterCall("C_G_LogoutRequest", func(accountId int, UID int) {
-		SERVER.GetLog().Printf("logout Socket:%d Account:%d UID:%d ", this.GetSocketId(), accountId, UID)
-		SERVER.GetPlayerMgr().SendMsg("DEL_ACCOUNT", this.GetSocketId())
-		SendToClient(this.GetSocketId(), &message.C_G_LogoutResponse{PacketHead: message.BuildPacketHead(0, 0)})
-	})
+	this.InitMessage()
 
 	this.Actor.Start()
+}
+
+func (this *UserPrcoess) InitMessage() {
+	this.RegisterCall("C_G_LogoutRequest", this.Handle_C_G_LogoutRequest)
+}
+
+func (this *UserPrcoess) Handle_C_G_LogoutRequest(accountId int, UID int) {
+	SERVER.GetLog().Printf("logout Socket:%d Account:%d UID:%d ", this.GetSocketId(), accountId, UID)
+	SERVER.GetPlayerMgr().SendMsg("DEL_ACCOUNT", this.GetSocketId())
+	SendToClient(this.GetSocketId(), &message.C_G_LogoutResponse{PacketHead: message.BuildPacketHead(0, 0)})
 }

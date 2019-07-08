@@ -106,31 +106,43 @@ func (this *PlayerManager) Init(num int) {
 	this.m_SocketMap = make(map[int]int64)
 	this.m_AccountMap = make(map[int64]*AccountInfo)
 	this.m_Locker = &sync.RWMutex{}
-	this.RegisterCall("ADD_ACCOUNT", func(accountId int64, socketId int) {
-		SERVER.GetLog().Printf("login incoming  Socket:%d Account:%d ", socketId, accountId)
-		this.AddAccountMap(accountId, socketId)
-	})
 
-	this.RegisterCall("DEL_ACCOUNT", func(socketid int) {
-		accountId := this.GetAccount(socketid)
-		this.ReleaseSocketMap(socketid, true)
-		SERVER.GetAccountCluster().BoardCastMsg("G_ClientLost", accountId)
-	})
+	this.InitMessage()
+	this.Actor.Start()
+}
+
+func (this *PlayerManager) InitMessage() {
+	this.RegisterCall("ADD_ACCOUNT", this.Handle_ADD_ACCOUNT)
+
+	this.RegisterCall("DEL_ACCOUNT", this.Handle_DEL_ACCOUNT)
 
 	//重连世界服务器，账号重新登录
-	this.RegisterCall("Account_Relink", func() {
-		accountMap := make(map[int64]uint32)
-		this.m_Locker.RLock()
-		for i, v := range this.m_AccountMap {
-			accountMap[i] = v.WSocketId
-		}
-		this.m_Locker.RUnlock()
+	this.RegisterCall("Account_Relink", this.Handle_Account_Relink)
+}
 
-		if len(accountMap) != 0 {
-			for i, v := range accountMap {
-				SERVER.GetWorldCluster().SendMsg(v, "G_W_CLoginRequest", i)
-			}
+func (this *PlayerManager) Handle_ADD_ACCOUNT(accountId int64, socketId int) {
+	SERVER.GetLog().Printf("login incoming  Socket:%d Account:%d ", socketId, accountId)
+	this.AddAccountMap(accountId, socketId)
+}
+
+func (this *PlayerManager) Handle_DEL_ACCOUNT(socketid int) {
+	accountId := this.GetAccount(socketid)
+	this.ReleaseSocketMap(socketid, true)
+	SERVER.GetAccountCluster().BoardCastMsg("G_ClientLost", accountId)
+}
+
+//重连世界服务器，账号重新登录
+func (this *PlayerManager) Handle_Account_Relink() {
+	accountMap := make(map[int64]uint32)
+	this.m_Locker.RLock()
+	for i, v := range this.m_AccountMap {
+		accountMap[i] = v.WSocketId
+	}
+	this.m_Locker.RUnlock()
+
+	if len(accountMap) != 0 {
+		for i, v := range accountMap {
+			SERVER.GetWorldCluster().SendMsg(v, "G_W_CLoginRequest", i)
 		}
-	})
-	this.Actor.Start()
+	}
 }

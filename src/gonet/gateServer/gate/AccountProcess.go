@@ -36,37 +36,8 @@ func (this *AccountProcess) Init(num int) {
 	this.m_LostTimer = common.NewSimpleTimer(10)
 	this.m_LostTimer.Start()
 	this.RegisterTimer(1*1000*1000*1000, this.Update)
-	this.RegisterCall("COMMON_RegisterRequest", func() {
-		port, _ := strconv.Atoi(GateNetPort)
-		this.RegisterServer(int(message.SERVICE_GATESERVER), GateNetIP, port)
-	})
 
-	this.RegisterCall("COMMON_RegisterResponse", func() {
-		this.m_LostTimer.Stop()
-		SERVER.GetPlayerMgr().SendMsg("Account_Relink")
-	})
-
-	this.RegisterCall("STOP_ACTOR", func() {
-		this.Stop()
-	})
-
-	this.RegisterCall("DISCONNECT", func(socketId int) {
-		this.m_LostTimer.Start()
-	})
-
-	this.RegisterCall("A_G_Account_Login", func(accountId int64, socketId int) {
-		SERVER.GetPlayerMgr().SendMsg("ADD_ACCOUNT", accountId, socketId)
-	})
-
-	this.RegisterCall("A_C_RegisterResponse", func(packet *message.A_C_RegisterResponse) {
-		buff := message.Encode(packet)
-		SERVER.GetServer().SendByID(int(packet.GetSocketId()), buff)
-	})
-
-	this.RegisterCall("A_C_LoginRequest", func(packet *message.A_C_LoginRequest) {
-		buff := message.Encode(packet)
-		SERVER.GetServer().SendByID(int(packet.GetSocketId()), buff)
-	})
+	this.InitMessage()
 
 	this.Actor.Start()
 }
@@ -75,4 +46,52 @@ func (this *AccountProcess) Update() {
 	if this.m_LostTimer.CheckTimer() {
 		SERVER.GetAccountCluster().GetCluster(this.m_Id).Start()
 	}
+}
+
+func (this *AccountProcess) InitMessage() {
+	this.RegisterCall("COMMON_RegisterRequest", this.Handle_COMMON_RegisterRequest)
+
+	this.RegisterCall("COMMON_RegisterResponse", this.Handle_COMMON_RegisterResponse)
+
+	this.RegisterCall("STOP_ACTOR", this.Handle_STOP_ACTOR)
+
+	this.RegisterCall("DISCONNECT", this.Handle_DISCONNECT)
+
+	this.RegisterCall("A_G_Account_Login", this.Handle_A_G_Account_Login)
+
+	this.RegisterCall("A_C_RegisterResponse", this.Handle_A_C_RegisterResponse)
+
+	this.RegisterCall("A_C_LoginRequest", this.Handle_A_C_LoginRequest)
+}
+
+func (this *AccountProcess) Handle_COMMON_RegisterRequest() {
+	port, _ := strconv.Atoi(GateNetPort)
+	this.RegisterServer(int(message.SERVICE_GATESERVER), GateNetIP, port)
+}
+
+func (this *AccountProcess) Handle_COMMON_RegisterResponse() {
+	this.m_LostTimer.Stop()
+	SERVER.GetPlayerMgr().SendMsg("Account_Relink")
+}
+
+func (this *AccountProcess) Handle_STOP_ACTOR() {
+	this.Stop()
+}
+
+func (this *AccountProcess) Handle_DISCONNECT(socketId int) {
+	this.m_LostTimer.Start()
+}
+
+func (this *AccountProcess) Handle_A_G_Account_Login(accountId int64, socketId int) {
+	SERVER.GetPlayerMgr().SendMsg("ADD_ACCOUNT", accountId, socketId)
+}
+
+func (this *AccountProcess) Handle_A_C_RegisterResponse(packet *message.A_C_RegisterResponse) {
+	buff := message.Encode(packet)
+	SERVER.GetServer().SendByID(int(packet.GetSocketId()), buff)
+}
+
+func (this *AccountProcess) Handle_A_C_LoginRequest(packet *message.A_C_LoginRequest) {
+	buff := message.Encode(packet)
+	SERVER.GetServer().SendByID(int(packet.GetSocketId()), buff)
 }

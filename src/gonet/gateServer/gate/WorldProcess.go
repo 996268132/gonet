@@ -39,26 +39,7 @@ func (this *WorldProcess) Init(num int) {
 	this.m_LostTimer.Start()
 	this.m_Id = 0
 	this.RegisterTimer(1*1000*1000*1000, this.Update)
-	this.RegisterCall("COMMON_RegisterRequest", func() {
-		port, _ := strconv.Atoi(GateNetPort)
-		this.RegisterServer(int(message.SERVICE_GATESERVER), GateNetIP, port)
-		SERVER.GetLog().Println("客户端登录Gate服务器\n")
-		fmt.Printf("客户端登录Gate服务器\n")
-	})
-
-	this.RegisterCall("COMMON_RegisterResponse", func() {
-		//收到worldserver对自己注册的反馈
-		this.m_LostTimer.Stop()
-		SERVER.GetLog().Println("收到world对自己注册的反馈")
-	})
-
-	this.RegisterCall("STOP_ACTOR", func() {
-		this.Stop()
-	})
-
-	this.RegisterCall("DISCONNECT", func(socketId int) {
-		this.m_LostTimer.Start()
-	})
+	this.InitMessage()
 
 	this.Actor.Start()
 }
@@ -67,6 +48,37 @@ func (this *WorldProcess) Update() {
 	if this.m_LostTimer.CheckTimer() {
 		SERVER.GetWorldCluster().GetCluster(this.m_Id).Start()
 	}
+}
+
+func (this *WorldProcess) InitMessage() {
+	this.RegisterCall("COMMON_RegisterRequest", this.Handle_COMMON_RegisterRequest)
+
+	this.RegisterCall("COMMON_RegisterResponse", this.Handle_COMMON_RegisterResponse)
+
+	this.RegisterCall("STOP_ACTOR", this.Handle_STOP_ACTOR)
+
+	this.RegisterCall("DISCONNECT", this.Handle_DISCONNECT)
+}
+
+func (this *WorldProcess) Handle_COMMON_RegisterRequest() {
+	port, _ := strconv.Atoi(GateNetPort)
+	this.RegisterServer(int(message.SERVICE_GATESERVER), GateNetIP, port)
+	SERVER.GetLog().Println("客户端登录Gate服务器\n")
+	fmt.Printf("客户端登录Gate服务器\n")
+}
+
+func (this *WorldProcess) Handle_COMMON_RegisterResponse() {
+	//收到worldserver对自己注册的反馈
+	this.m_LostTimer.Stop()
+	SERVER.GetLog().Println("收到world对自己注册的反馈")
+}
+
+func (this *WorldProcess) Handle_STOP_ACTOR() {
+	this.Stop()
+}
+
+func (this *WorldProcess) Handle_DISCONNECT(socketId int) {
+	this.m_LostTimer.Start()
 }
 
 func DispatchPacketToClient(id int, buff []byte) bool {

@@ -34,25 +34,33 @@ func (this *ServerSocketManager) Init(num int) {
 	this.m_GateMap = make(HashSocketMap)
 	this.m_SocketMap = make(HashSocketMap)
 	this.m_Locker = &sync.RWMutex{}
-	this.RegisterCall("COMMON_RegisterRequest", func(nType int, Ip string, Port int) {
-		pServerInfo := new(common.ServerInfo)
-		pServerInfo.SocketId = this.GetSocketId()
-		pServerInfo.Type = nType
-		pServerInfo.Ip = Ip
-		pServerInfo.Port = Port
-		this.AddServerMap(pServerInfo)
-		switch pServerInfo.Type {
-		case int(message.SERVICE_GATESERVER):
-			SERVER.GetServer().SendMsgByID(this.GetSocketId(), "COMMON_RegisterResponse")
-		}
-	})
-
-	//断开链接
-	this.RegisterCall("DISCONNECT", func(socketId int) {
-		this.ReleaseServerMap(socketId, false)
-	})
+	this.InitMessage()
 
 	this.Actor.Start()
+}
+
+func (this *ServerSocketManager) InitMessage() {
+	this.RegisterCall("COMMON_RegisterRequest", this.Handle_COMMON_RegisterRequest)
+	//断开链接
+	this.RegisterCall("DISCONNECT", this.Handle_DISCONNECT)
+}
+
+func (this *ServerSocketManager) Handle_COMMON_RegisterRequest(nType int, Ip string, Port int) {
+	pServerInfo := new(common.ServerInfo)
+	pServerInfo.SocketId = this.GetSocketId()
+	pServerInfo.Type = nType
+	pServerInfo.Ip = Ip
+	pServerInfo.Port = Port
+	this.AddServerMap(pServerInfo)
+	switch pServerInfo.Type {
+	case int(message.SERVICE_GATESERVER):
+		SERVER.GetServer().SendMsgByID(this.GetSocketId(), "COMMON_RegisterResponse")
+	}
+}
+
+//断开链接
+func (this *ServerSocketManager) Handle_DISCONNECT(socketId int) {
+	this.ReleaseServerMap(socketId, false)
 }
 
 func (this *ServerSocketManager) AddServerMap(pSeverInfo *common.ServerInfo) {
